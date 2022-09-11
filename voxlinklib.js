@@ -351,16 +351,117 @@
             }
             // TODO: check other interfaces
 
-            var result = await window.ethereum.request({
+            // DETERMINE TYPE OF COLLECTION ERC721, ERC1155, ERC20
+            // call supportInterface on the collectionAddress
+            var erc721Interface = "0x80ac58cd";
+            var erc1155Interface = "0xd9b67a26";
+            var erc20Interface = "0x36372b07";
+            var erc721 = Boolean(parseInt(await window.ethereum.request({
                 method: 'eth_call',
                 jsonrpc: "2.0",
                 id: "1",
                 params: [{
                     to: collectionAddress,
-                    data: "0x70a08231" + Voxlink.padded(checkingAccount.slice(2))
+                    data: "0x01ffc9a7" + erc721Interface.slice(2).padEnd(64, "0")
                 }, "latest"]
+            })));
+            var erc1155 = Boolean(parseInt(await window.ethereum.request({
+                method: 'eth_call',
+                jsonrpc: "2.0",
+                id: "1",
+                params: [{
+                    to: collectionAddress,
+                    data: "0x01ffc9a7" + erc1155Interface.slice(2).padEnd(64, "0")
+                }, "latest"]
+            })));
+            var erc20 = Boolean(parseInt(await window.ethereum.request({
+                method: 'eth_call',
+                jsonrpc: "2.0",
+                id: "1",
+                params: [{
+                    to: collectionAddress,
+                    data: "0x01ffc9a7" + erc20Interface.slice(2).padEnd(64, "0")
+                }, "latest"]
+            })));
+            if (erc721 || erc20) {
+                var result = await window.ethereum.request({
+                    method: 'eth_call',
+                    jsonrpc: "2.0",
+                    id: "1",
+                    params: [{
+                        to: collectionAddress,
+                        data: "0x70a08231" + Voxlink.padded(checkingAccount.slice(2))
+                    }, "latest"]
+                });
+                return (parseInt(result.slice(2), 16) > 0);
+            } else if (erc1155) {
+                // in the case of erc1155, we need to check past logs for the account and get the ids
+                var topicSig1 = "TransferSingle(address,address,address,uint256,uint256)";
+                var topicSig2 = "TransferBatch(address,address,address,uint256[],uint256[])";
+                var logs1 = await Voxlink.getLogs(collectionAddress, topicSig1,null,null,account);
+                var logs2 = await Voxlink.getLogs(collectionAddress, topicSig2,null,null,account);
+                // get the transferred ids
+                var ids1 = logs1.map(log => log.data.substring(2, 66));
+                
+                var pre_ids2 = logs2.map(log => log.data.substring(2, 66));
+                // get the lengths of the id array
+                var len2 = pre_ids2[2];
+                // get the ids
+                var ids2 = [];
+                for (var i = 3; i < 3+len2; i++) {
+                    ids2.push(pre_ids2[i]);
+                }
+                // add id2 to ids1
+                ids1 = ids1.concat(ids2);
+                // remove duplicates from ids1
+                ids1 = ids1.filter((id, index) => ids1.indexOf(id) === index);
+                console.log(ids1);
+                // we call balanceOfBatch with all the ids to see if any of them are > 0
+                var result = await window.ethereum.request({
+                    method: 'eth_call',
+                    jsonrpc: "2.0",
+                    id: "1",
+                    params: [{
+                        to: collectionAddress,
+                        data: "0x4e1273f4" + 
+                            Voxlink.padded("40", 64) +
+                            Voxlink.padded(((3+ids1.length)*32).toString(16), 64, "left") +
+                            Voxlink.padded(ids1.length.toString(16), 64, "left") + 
+                            Voxlink.padded(account.slice(2)).repeat(ids1.length) + 
+                            Voxlink.padded(ids1.length.toString(16), 64, "left") + 
+                            Voxlink.padded(ids1.join(""), 64, "left")
+                    }, "latest"]
+                });
+                result = result.slice(2);
+                console.log(result);
+                var resultingAmount=0;
+                for (var i = 1; i < result.length/64; i++) {
+                    resultingAmount += parseInt("0x" + result.substring(i*64,(i+1)*64));
+                }
+                return (resultingAmount>0);
+            }
+        },
+        getLogs: async function (collectionAddress, signature) {
+            var topics = [];
+            topics.push("0x" + Voxlink.keccak256(signature));
+            for(var i=0; i<arguments.length-2; i++) {
+                if ((arguments[i+2]==null) || (arguments[i+2].trim()=="")){
+                    topics.push(null);
+                } else {
+                    topics.push("0x" + Voxlink.padded(arguments[i+2].slice(2)));
+                }
+            };
+            return await window.ethereum.request({
+                method: 'eth_getLogs',
+                jsonrpc: "2.0",
+                id: "1",
+                params: [{
+                    fromBlock: "0x0",
+                    toBlock: "latest",
+                    address: collectionAddress,
+                    topics: topics
+                }]
             });
-            return (parseInt(result.slice(2), 16) > 0);
         },
         ghostminting: {
             cancel: function () {
@@ -487,6 +588,11 @@
                         Voxlink.register.status.mainWallet = document.getElementById("modalVoxlinkRegisterMainWallet").value;
                         Voxlink.register.status.burnerWallet = document.getElementById("modalVoxlinkRegisterBurnerWallet").value;
                         bothValid = bothValid & (Voxlink.register.status.mainWallet != Voxlink.register.status.burnerWallet);
+                        // check if burner wallet is already in use
+                        if(await Voxlink.burnerWalletExists(Voxlink.register.status.burnerWallet)){
+                            document.querySelector('#modalVoxlinkRegisterBurnerWallet_message').innerHTML = "This burner wallet is already in use";
+                            bothValid = false;
+                        }
                         if (bothValid) {
                             // both valid
                             Voxlink.register.step(3);
@@ -495,10 +601,6 @@
                             if (Voxlink.register.status.mainWallet == Voxlink.register.status.burnerWallet) {
                                 document.querySelector('#modalVoxlinkRegisterMainWallet_message').innerHTML = "Main wallet and burner wallet cannot be the same";
                             }
-                        }
-                        // check if burner wallet is already in use
-                        if(await Voxlink.burnerWalletExists(Voxlink.register.status.burnerWallet)){
-                            document.querySelector('#modalVoxlinkRegisterBurnerWallet_message').innerHTML = "This burner wallet is already in use";
                         }
                         break;
                     case 3:
