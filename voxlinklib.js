@@ -404,7 +404,7 @@
                         data: "0x70a08231" + Voxlink.padded(checkingAccount.slice(2))
                     }, "latest"]
                 });
-                return (parseInt(result.slice(2), 16) > 0);
+                return (parseInt(result.slice(2), 16));
             } else if (erc1155) {
                 // in the case of erc1155, we need to check past logs for the account and get the ids
                 var topicSig1 = "TransferSingle(address,address,address,uint256,uint256)";
