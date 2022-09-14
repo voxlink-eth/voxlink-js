@@ -1,6 +1,7 @@
 /*
     This library is used to link to the Voxlink onchain API.
     It is self contained and does not require any other libraries.
+    An own web3 provider can be passed in order to route the calls.
 */
 (async () => {
     var internal = {
