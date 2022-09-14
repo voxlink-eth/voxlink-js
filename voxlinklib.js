@@ -349,7 +349,7 @@
             return padded;
         },
         hasTokens: async function (collectionAddress, account) {
-            return Voxlink.balanceOf(collectionAddress, account)>0;
+            return (await Voxlink.balanceOf(collectionAddress, account))>0;
         },
         balanceOf: async function (collectionAddress, account) {
             // check if the account has a burnerWallet
