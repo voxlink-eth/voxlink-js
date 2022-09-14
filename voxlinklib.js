@@ -349,6 +349,9 @@
             return padded;
         },
         hasTokens: async function (collectionAddress, account) {
+            return Voxlink.balanceOf(collectionAddress, account)>0;
+        },
+        balanceOf: async function (collectionAddress, account) {
             // check if the account has a burnerWallet
             var checkingAccount = account;
             if (await Voxlink.burnerWalletExists(checkingAccount)) {
@@ -441,12 +444,11 @@
                     }, "latest"]
                 });
                 result = result.slice(2);
-                console.log(result);
                 var resultingAmount = 0;
                 for (var i = 1; i < result.length / 64; i++) {
                     resultingAmount += parseInt("0x" + result.substring(i * 64, (i + 1) * 64));
                 }
-                return (resultingAmount > 0);
+                return resultingAmount;
             }
         },
         getLogs: async function (collectionAddress, signature) {
