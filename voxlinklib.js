@@ -1,23 +1,70 @@
 /*
     This library is used to link to the Voxlink onchain API.
     It is self contained and does not require any other libraries.
-    An own web3 provider can be passed in order to route the calls.
 */
 (async () => {
     var internal = {
-        removeModal: function (id) {
-            if (id.indexOf("VoxlinkModal") == -1) {
-                id = "VoxlinkModal-" + id;
+        removeElement: function (id) {
+            if (id.indexOf("VoxlinkElement") == -1) {
+                id = "VoxlinkElement-" + id;
             }
             var el = document.getElementById(id);
             if (el) {
                 el.parentNode.removeChild(el);
             };
             Voxlink.activeModal = null;
+            Voxlink.activeElement = null;
+        },
+        createElement: function(elementId, id, title, content){
+            if (Voxlink.activeElement) {
+                internal.removeElement(Voxlink.activeElement);
+            }
+            // create modal content
+            var elementContent = document.createElement("div");
+            //elementContent.style.position = "absolute";
+            elementContent.style.fontFamily = "Chillax-Regular";
+            /*elementContent.style.top = "50%";
+            elementContent.style.left = "50%";
+            elementContent.style.transform = "translate(-50%, -50%)";*/
+            elementContent.style.backgroundColor = "#1E3A8A";
+            elementContent.style.padding = "20px";
+            elementContent.style.borderRadius = "10px";
+            /*elementContent.style.width = "650px";
+            elementContent.style.maxWidth = "90vw";*/
+            //elementContent.style.height = "auto";
+            elementContent.style.fontSize = "1.4em";
+            var elementTitle = document.createElement("h1");
+            elementTitle.style.color = "#FFF";
+            elementTitle.style.fontSize = "1.8em";
+            elementTitle.style.fontWeight = "bold";
+            elementTitle.style.marginBottom = "8px";
+            elementTitle.style.fontFamily = "Chillax-Regular";
+            elementTitle.style.borderBottom = "2px solid #7DD3FC"
+            elementTitle.innerHTML = title;
+            elementContent.appendChild(elementTitle);
+            // create element description
+            var elementDescription = document.createElement("p");
+            elementDescription.style.color = "#FFF";
+            elementDescription.innerHTML = content;
+            elementContent.appendChild(elementDescription);
+            // create unique identifier for element from title
+
+            elementContent.id = "VoxlinkElement-" + id;
+            elementContent.remove = function () {
+                var thisElement = document.querySelector('#' + elementContent.id);
+                thisElement.parentElement.removeChild(thisElement);
+                Voxlink.activeElement = "";
+            };
+            // add modal to body
+            // add content to provided element
+            document.querySelector('#'+elementId).appendChild(elementContent);
+
+            Voxlink.activeElement = elementContent.id;
+            return elementContent;
         },
         createModal: function (id, title, content) {
             if (Voxlink.activeModal) {
-                internal.removeModal(Voxlink.activeModal);
+                internal.removeElement(Voxlink.activeModal);
             }
             var modal = document.createElement("div");
             modal.style.fontFamily = "Chillax-Regular";
@@ -61,10 +108,11 @@
             modal.appendChild(modalContent);
             // create unique identifier for modal from title
 
-            modal.id = "VoxlinkModal-" + id;
+            modal.id = "VoxlinkElement-" + id;
             modal.remove = function () {
                 var thisModal = document.querySelector('#' + modal.id);
                 thisModal.parentElement.removeChild(thisModal);
+                Voxlink.activeModal = "";
             };
             // add modal to body
             document.body.appendChild(modal);
@@ -502,15 +550,21 @@
                     if (success) {
                         var shortenedWallet = mainWallet.substring(0, 6) + "..." + mainWallet.substring(mainWallet.length - 4, mainWallet.length);
                         var content = "You have connected a Voxlink burner wallet.<br>Your main wallet has automatically been detected. The NFT will be sent to your main wallet: <a title='" + mainWallet + "' href='https://goerli.etherscan.io/address/" + mainWallet + "' target='_blank'>" + shortenedWallet + "</a><br>";
-                        content += "<span id='modalVoxlinkGhostmintingCountdown'>&nbsp;</span><br><br>";
+                        content += "<span id='VoxlinkGhostmintingCountdown'>&nbsp;</span><br><br>";
                         content += '<button onclick="Voxlink.ghostminting.mint()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;margin-right:10px;">Mint now</button>';
                         content += '<button onclick="Voxlink.ghostminting.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;margin-right:10px;">Cancel</button>';
                         content += '<button onclick="Voxlink.ghostminting.switchToBurner()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;">Send to burner</button>';
-                        var modal = internal.createModal('ghostminting', 'GhostMinting by Voxlink', content);
+                        var newElement;
+                        if (options.elementId){
+                            // an elementId was provided, so we won't show the modal but instead inflate the code into the id
+                            newElement = internal.createElement(options.elementId, "ghostminting", "GhostMinting by Voxlink", content);
+                        } else {
+                            newElement = internal.createModal('ghostminting', 'GhostMinting by Voxlink', content);
+                        }
                         // countdown
                         var count = options.countDown || 8;
                         var countdown = setInterval(function () {
-                            modal.querySelector("#modalVoxlinkGhostmintingCountdown").innerHTML = "Minting in " + count + " seconds... <button href='#' style='text-decoration:underline' onclick='Voxlink.ghostminting.pauseCountdown()'>pause</button>";
+                            newElement.querySelector("#VoxlinkGhostmintingCountdown").innerHTML = "Minting in " + count + " seconds... <button href='#' style='text-decoration:underline' onclick='Voxlink.ghostminting.pauseCountdown()'>pause</button>";
                             if (count == 0) {
                                 Voxlink.ghostminting.mint();
                             }
@@ -519,12 +573,12 @@
                         // listen to cancel event
                         window.addEventListener("voxlink-ghostminting-cancel", function () {
                             clearInterval(countdown);
-                            internal.removeModal("ghostminting");
+                            internal.removeElement("ghostminting");
                             resolve({ success: false, mainWallet: undefined });
                         }, { once: true });
                         window.addEventListener("voxlink-ghostminting-switchtoburner", function () {
                             clearInterval(countdown);
-                            internal.removeModal("ghostminting");
+                            internal.removeElement("ghostminting");
                             resolve({ success: true, mainWallet: account });
                         }, { once: true });
                         window.addEventListener("voxlink-ghostminting-pausecountdown", function () {
@@ -532,7 +586,7 @@
                         }, { once: true });
                         window.addEventListener("voxlink-ghostminting-mint", function () {
                             clearInterval(countdown);
-                            internal.removeModal("ghostminting");
+                            internal.removeElement("ghostminting");
                             resolve({ success: true, mainWallet: mainWallet });
                         }, { once: true });
 
@@ -545,7 +599,11 @@
         },
         register: {
             status: {},
-            start: async function () {
+            start: async function (options) {
+                options = options || {};
+                internal.data = internal.data || {};
+                internal.data.register = internal.data.register || {};
+                internal.data.register.options = options;
                 return new Promise(async (resolve, reject) => {
                     Voxlink.register.status = {};
                     // register Voxlink, managed process
@@ -558,9 +616,14 @@
                     modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;margin-right:10px;">Cancel</button>';
                     modalDescription += '<button onclick="Voxlink.register.step(2)" style="right:0px;font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;">Next</button>';
                     modalDescription += '<br><br><div style="text-align:center"><span style="font-size:2rem;color:#7DD3FC">&#9679;</span><span style="font-size:2rem;color:#7DD3FC">&#9675;</span><span style="font-size:2rem;color:#7DD3FC">&#9675;</span></div>';
-                    internal.createModal('registerVoxlink', modalTitle, modalDescription);
+                    if (internal.data.register.options.elementId){
+                        // an elementId was provided, so we won't show the modal but instead inflate the code into the id
+                        internal.createElement(internal.data.register.options.elementId, "registerVoxlink", modalTitle, modalDescription);
+                    } else {
+                        internal.createModal('registerVoxlink', modalTitle, modalDescription);
+                    }
                     window.addEventListener("voxlink-register-cancel", function () {
-                        internal.removeModal("registerVoxlink");
+                        internal.removeElement("registerVoxlink");
                         resolve({ success: false });
                     }, { once: true });
                 });
@@ -623,7 +686,12 @@
                         modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;margin-right:10px;">Cancel</button>';
                         modalDescription += '<button onclick="Voxlink.register.step(4)" style="right:0px;font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;">Connect main wallet and sign</button>';
                         modalDescription += '<br><br><div style="text-align:center"><span style="font-size:2rem;color:#7DD3FC">&#9675;</span><span style="font-size:2rem;color:#7DD3FC">&#9679;</span><span style="font-size:2rem;color:#7DD3FC">&#9675;</span></div>';
-                        internal.createModal('registerVoxlink', modalTitle, modalDescription);
+                        if (internal.data.register.options.elementId){
+                            // an elementId was provided, so we won't show the modal but instead inflate the code into the id
+                            internal.createElement(internal.data.register.options.elementId, "registerVoxlink", modalTitle, modalDescription);
+                        } else {
+                            internal.createModal('registerVoxlink', modalTitle, modalDescription);
+                        }
                         document.querySelector('#modalVoxlinkRegister_message').innerHTML = "";
                         // check if connected wallet is main wallet
                         break;
@@ -652,7 +720,12 @@
                         modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;margin-right:10px;">Cancel</button>';
                         modalDescription += '<button onclick="Voxlink.register.step(6)" style="right:0px;font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;">Connect burner wallet and sign</button>';
                         modalDescription += '<br><br><div style="text-align:center"><span style="font-size:2rem;color:#7DD3FC">&#9675;</span><span style="font-size:2rem;color:#7DD3FC">&#9679;</span><span style="font-size:2rem;color:#7DD3FC">&#9675;</span></div>';
-                        internal.createModal('registerVoxlink', modalTitle, modalDescription);
+                        if (internal.data.register.options.elementId){
+                            // an elementId was provided, so we won't show the modal but instead inflate the code into the id
+                            internal.createElement(internal.data.register.options.elementId, "registerVoxlink", modalTitle, modalDescription);
+                        } else {
+                            internal.createModal('registerVoxlink', modalTitle, modalDescription);
+                        }
                         break;
                     case 6:
                         // step 6
@@ -679,7 +752,12 @@
                         modalDescription += "<span id='modalVoxlinkRegister_message'></span><br><br>";
                         modalDescription += 'Please confirm the trasaction in your wallet<br><br>';
                         modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;margin-right:10px;">Close</button>';
-                        internal.createModal('registerVoxlink', modalTitle, modalDescription);
+                        if (internal.data.register.options.elementId){
+                            // an elementId was provided, so we won't show the modal but instead inflate the code into the id
+                            internal.createElement(internal.data.register.options.elementId, "registerVoxlink", modalTitle, modalDescription);
+                        } else {
+                            internal.createModal('registerVoxlink', modalTitle, modalDescription);
+                        }
                         await Voxlink.registerVoxlink(Voxlink.register.status.mainWallet, Voxlink.register.status.burnerWallet, Voxlink.register.status.safetyCode, Voxlink.register.status.signatures['main'], Voxlink.register.status.signatures['burner']);
                         break;
                 }
