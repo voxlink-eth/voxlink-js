@@ -23,10 +23,11 @@
             var elementContent = document.createElement("div");
             //elementContent.style.position = "absolute";
             elementContent.style.fontFamily = "Chillax-Regular";
+            elementContent.style.width = "100vh";
             /*elementContent.style.top = "50%";
             elementContent.style.left = "50%";
             elementContent.style.transform = "translate(-50%, -50%)";*/
-            elementContent.style.backgroundColor = "#1E3A8A";
+            elementContent.style.backgroundColor = "#1d2464";
             elementContent.style.padding = "20px";
             elementContent.style.borderRadius = "10px";
             /*elementContent.style.width = "650px";
@@ -39,7 +40,7 @@
             elementTitle.style.fontWeight = "bold";
             elementTitle.style.marginBottom = "8px";
             elementTitle.style.fontFamily = "Chillax-Regular";
-            elementTitle.style.borderBottom = "2px solid #7DD3FC"
+            elementTitle.style.borderBottom = "2px solid #3235ef"
             elementTitle.innerHTML = title;
             elementContent.appendChild(elementTitle);
             // create element description
@@ -82,7 +83,7 @@
             modalContent.style.top = "50%";
             modalContent.style.left = "50%";
             modalContent.style.transform = "translate(-50%, -50%)";
-            modalContent.style.backgroundColor = "#1E3A8A";
+            modalContent.style.backgroundColor = "#1D2464";
             modalContent.style.padding = "20px";
             modalContent.style.borderRadius = "10px";
             modalContent.style.width = "650px";
@@ -96,7 +97,7 @@
             modalTitle.style.fontWeight = "bold";
             modalTitle.style.marginBottom = "8px";
             modalTitle.style.fontFamily = "Chillax-Regular";
-            modalTitle.style.borderBottom = "2px solid #7DD3FC"
+            modalTitle.style.borderBottom = "2px solid #3235ef"
             modalTitle.innerHTML = title;
             modalContent.appendChild(modalTitle);
             // create modal description
@@ -551,9 +552,9 @@
                         var shortenedWallet = mainWallet.substring(0, 6) + "..." + mainWallet.substring(mainWallet.length - 4, mainWallet.length);
                         var content = "You have connected a Voxlink burner wallet.<br>Your main wallet has automatically been detected. The NFT will be sent to your main wallet: <a title='" + mainWallet + "' href='https://goerli.etherscan.io/address/" + mainWallet + "' target='_blank'>" + shortenedWallet + "</a><br>";
                         content += "<span id='VoxlinkGhostmintingCountdown'>&nbsp;</span><br><br>";
-                        content += '<button onclick="Voxlink.ghostminting.mint()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;margin-right:10px;">Mint now</button>';
-                        content += '<button onclick="Voxlink.ghostminting.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;margin-right:10px;">Cancel</button>';
-                        content += '<button onclick="Voxlink.ghostminting.switchToBurner()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;">Send to burner</button>';
+                        content += '<button onclick="Voxlink.ghostminting.mint()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;margin-right:10px;">Mint now</button>';
+                        content += '<button onclick="Voxlink.ghostminting.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;margin-right:10px;">Cancel</button>';
+                        content += '<button onclick="Voxlink.ghostminting.switchToBurner()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;">Send to burner</button>';
                         var newElement;
                         if (options.elementId){
                             // an elementId was provided, so we won't show the modal but instead inflate the code into the id
@@ -599,29 +600,45 @@
         },
         register: {
             status: {},
+            restart: async function () {
+                options = internal.data.register.options || {};
+                Voxlink.register.status.mainWallet = "";
+                Voxlink.register.status.burnerWallet = "";
+                Voxlink.register.start(options);
+            },
             start: async function (options) {
                 options = options || {};
                 internal.data = internal.data || {};
                 internal.data.register = internal.data.register || {};
                 internal.data.register.options = options;
                 return new Promise(async (resolve, reject) => {
-                    Voxlink.register.status = {};
+                    Voxlink.register.status = Voxlink.register.status || {};
                     // register Voxlink, managed process
                     var modalTitle = "Create your Voxlink";
                     var modalDescription = "We will run you through the process of creating a Voxlink. This process will link a burner wallet to your main wallet. This will allow you to safely use your burner wallet, without having to connect your main wallet.<br><br>";
-                    modalDescription += "<input style='padding:2px;width:100%;color:#1E3A8A' type='text' id='modalVoxlinkRegisterMainWallet' placeholder='Enter the address of your main wallet (or ENS)'/><br>";
+                    modalDescription += "<input value='"+(Voxlink.register.status.mainWallet||"")+"'style='padding:2px;width:100%;color:#1d2464' type='text' id='modalVoxlinkRegisterMainWallet' placeholder='Enter the address of your main wallet (or ENS)'/><br>";
                     modalDescription += "<span id='modalVoxlinkRegisterMainWallet_message'></span><br><br>";
-                    modalDescription += "<input style='padding:2px;width:100%;color:#1E3A8A' type='text' id='modalVoxlinkRegisterBurnerWallet' placeholder='Enter the address of your burner wallet (or ENS)'/><br>";
+                    modalDescription += "<input value='"+(Voxlink.register.status.burnerWallet||"")+"' style='padding:2px;width:100%;color:#1d2464' type='text' id='modalVoxlinkRegisterBurnerWallet' placeholder='Enter the address of your burner wallet (or ENS)'/><br>";
                     modalDescription += "<span id='modalVoxlinkRegisterBurnerWallet_message'></span><br><br>";
-                    modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;margin-right:10px;">Cancel</button>';
-                    modalDescription += '<button onclick="Voxlink.register.step(2)" style="right:0px;font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;">Next</button>';
-                    modalDescription += '<br><br><div style="text-align:center"><span style="font-size:2rem;color:#7DD3FC">&#9679;</span><span style="font-size:2rem;color:#7DD3FC">&#9675;</span><span style="font-size:2rem;color:#7DD3FC">&#9675;</span></div>';
+                    if (Voxlink.register.status.burnerWallet || Voxlink.register.status.mainWallet) {
+                        // show a button to clean
+                        modalDescription += "<button onclick='Voxlink.register.restart()' style='font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;margin-right:10px;'>Reset</button>";
+                    }
+                    if (!internal.data.register.options.elementId){
+                        // only add cancel if we are in a popup
+                        modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;margin-right:10px;">Cancel</button>';
+                    }
+                    modalDescription += '<button onclick="Voxlink.register.step(2)" style="right:0px;font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;">Next</button>';
+                    modalDescription += '<br><br><div style="text-align:center"><span style="font-size:2rem;color:#FFFFFF">&#9679;</span><span style="font-size:2rem;color:#FFFFFF">&#9675;</span><span style="font-size:2rem;color:#FFFFFF">&#9675;</span></div>';
+                    var newElement;
                     if (internal.data.register.options.elementId){
                         // an elementId was provided, so we won't show the modal but instead inflate the code into the id
-                        internal.createElement(internal.data.register.options.elementId, "registerVoxlink", modalTitle, modalDescription);
+                        newElement = internal.createElement(internal.data.register.options.elementId, "registerVoxlink", modalTitle, modalDescription);
                     } else {
-                        internal.createModal('registerVoxlink', modalTitle, modalDescription);
+                        newElement = internal.createModal('registerVoxlink', modalTitle, modalDescription);
                     }
+                    // save height of element to storage
+                    internal.data.register.height = document.querySelector('#'+(Voxlink.activeElement||Voxlink.activeModal)).offsetHeight;
                     window.addEventListener("voxlink-register-cancel", function () {
                         internal.removeElement("registerVoxlink");
                         resolve({ success: false });
@@ -633,6 +650,11 @@
             },
             step: async function (step) {
                 switch (step) {
+                    case 1:
+                        // restart the process
+                        console.log(internal.data.register.options);
+                        Voxlink.register.start(internal.data.register.options);
+                        break;
                     case 2:
                         // step 2
                         async function checkAndCorrect(addressName) {
@@ -680,18 +702,26 @@
                     case 3:
                         // step 3
                         var modalTitle = "Create your Voxlink";
-                        var modalDescription = "Your main wallet address is: <span style='background:white;color:#1E3A8A'><strong><u>" + Voxlink.register.status.mainWallet + "</u></strong></span><br><br> ";
+                        var modalDescription = "Your main wallet address is: <span style='background:white;color:#1d2464'><strong><u>" + Voxlink.register.status.mainWallet + "</u></strong></span><br><br> ";
                         modalDescription += "Your burner wallet address is: <strong>" + Voxlink.register.status.burnerWallet + "</strong><br><br>";
                         modalDescription += "<span id='modalVoxlinkRegister_message'></span><br><br>";
-                        modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;margin-right:10px;">Cancel</button>';
-                        modalDescription += '<button onclick="Voxlink.register.step(4)" style="right:0px;font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;">Connect main wallet and sign</button>';
-                        modalDescription += '<br><br><div style="text-align:center"><span style="font-size:2rem;color:#7DD3FC">&#9675;</span><span style="font-size:2rem;color:#7DD3FC">&#9679;</span><span style="font-size:2rem;color:#7DD3FC">&#9675;</span></div>';
+                        if (!internal.data.register.options.elementId){
+                            // only add cancel if we are in a popup
+                            modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;margin-right:10px;">Cancel</button>';
+                        } else {
+                            modalDescription += '<button onclick="Voxlink.register.step(1)" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;margin-right:10px;">Back</button>';
+                        }
+                        modalDescription += '<button onclick="Voxlink.register.step(4)" style="right:0px;font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;">Connect main wallet and sign</button>';
+                        modalDescription += '<br><br><div style="text-align:center"><span style="font-size:2rem;color:#FFFFFF">&#9675;</span><span style="font-size:2rem;color:#FFFFFF">&#9679;</span><span style="font-size:2rem;color:#FFFFFF">&#9675;</span></div>';
                         if (internal.data.register.options.elementId){
                             // an elementId was provided, so we won't show the modal but instead inflate the code into the id
                             internal.createElement(internal.data.register.options.elementId, "registerVoxlink", modalTitle, modalDescription);
                         } else {
                             internal.createModal('registerVoxlink', modalTitle, modalDescription);
                         }
+                        // restore height of element to storage
+                        document.querySelector('#'+(Voxlink.activeElement||Voxlink.activeModal)).style.height = internal.data.register.height+"px";
+                    
                         document.querySelector('#modalVoxlinkRegister_message').innerHTML = "";
                         // check if connected wallet is main wallet
                         break;
@@ -715,17 +745,24 @@
                         // step 5
                         var modalTitle = "Create your Voxlink";
                         var modalDescription = "Your main wallet address is: <strong>" + Voxlink.register.status.mainWallet + "</strong><br><br> ";
-                        modalDescription += "Your burner wallet address is: <span style='background:white;color:#1E3A8A'><strong><u>" + Voxlink.register.status.burnerWallet + "</u></strong></span><br><br>";
+                        modalDescription += "Your burner wallet address is: <span style='background:white;color:#1d2464'><strong><u>" + Voxlink.register.status.burnerWallet + "</u></strong></span><br><br>";
                         modalDescription += "<span id='modalVoxlinkRegister_message'></span><br><br>";
-                        modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;margin-right:10px;">Cancel</button>';
-                        modalDescription += '<button onclick="Voxlink.register.step(6)" style="right:0px;font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;">Connect burner wallet and sign</button>';
-                        modalDescription += '<br><br><div style="text-align:center"><span style="font-size:2rem;color:#7DD3FC">&#9675;</span><span style="font-size:2rem;color:#7DD3FC">&#9679;</span><span style="font-size:2rem;color:#7DD3FC">&#9675;</span></div>';
+                        if (!internal.data.register.options.elementId){
+                            // only add cancel if we are in a popup
+                            modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;margin-right:10px;">Cancel</button>';
+                        } else {
+                            modalDescription += '<button onclick="Voxlink.register.step(1)" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;margin-right:10px;">Back</button>';
+                        }
+                        modalDescription += '<button onclick="Voxlink.register.step(6)" style="right:0px;font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;">Connect burner wallet and sign</button>';
+                        modalDescription += '<br><br><div style="text-align:center"><span style="font-size:2rem;color:#FFFFFF">&#9675;</span><span style="font-size:2rem;color:#FFFFFF">&#9679;</span><span style="font-size:2rem;color:#FFFFFF">&#9675;</span></div>';
                         if (internal.data.register.options.elementId){
                             // an elementId was provided, so we won't show the modal but instead inflate the code into the id
                             internal.createElement(internal.data.register.options.elementId, "registerVoxlink", modalTitle, modalDescription);
                         } else {
                             internal.createModal('registerVoxlink', modalTitle, modalDescription);
                         }
+                        // restore height of element to storage
+                        document.querySelector('#'+(Voxlink.activeElement||Voxlink.activeModal)).style.height = internal.data.register.height+"px";
                         break;
                     case 6:
                         // step 6
@@ -751,13 +788,15 @@
                         modalDescription += "Your burner wallet address is: <strong>" + Voxlink.register.status.burnerWallet + "</strong><br><br>";
                         modalDescription += "<span id='modalVoxlinkRegister_message'></span><br><br>";
                         modalDescription += 'Please confirm the trasaction in your wallet<br><br>';
-                        modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#7DD3FC;color:#1E3A8A;margin-right:10px;">Close</button>';
+                        modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;margin-right:10px;">Close</button>';
                         if (internal.data.register.options.elementId){
                             // an elementId was provided, so we won't show the modal but instead inflate the code into the id
                             internal.createElement(internal.data.register.options.elementId, "registerVoxlink", modalTitle, modalDescription);
                         } else {
                             internal.createModal('registerVoxlink', modalTitle, modalDescription);
                         }
+                        // restore height of element to storage
+                        document.querySelector('#'+(Voxlink.activeElement||Voxlink.activeModal)).style.height = internal.data.register.height+"px";
                         await Voxlink.registerVoxlink(Voxlink.register.status.mainWallet, Voxlink.register.status.burnerWallet, Voxlink.register.status.safetyCode, Voxlink.register.status.signatures['main'], Voxlink.register.status.signatures['burner']);
                         break;
                 }
