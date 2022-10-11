@@ -545,6 +545,10 @@
                 return new Promise(async (resolve, reject) => {
                     // automatic process with user interaction
                     await Voxlink.connect();
+                    // test for goerli
+                    if (internal.ethereum.networkVersion != "5"){
+                        return alert('In the prelaunch phase, Voxlink is only available on Goerli Testnet. Please switch your network.');
+                    }
                     var account = (await internal.ethereum.request({ method: 'eth_requestAccounts' }))[0];
                     // check if this account has a valid voxlink
                     var { success, mainWallet } = await Voxlink.getMainWalletFromBurnerWallet(account);
@@ -613,6 +617,9 @@
                 internal.data.register.options = options;
                 return new Promise(async (resolve, reject) => {
                     Voxlink.register.status = Voxlink.register.status || {};
+                    if (internal.ethereum.networkVersion != "5"){
+                        return alert('In the prelaunch phase, Voxlink is only available on Goerli Testnet. Please switch your network.');
+                    }
                     // register Voxlink, managed process
                     var modalTitle = "Create your Voxlink";
                     var modalDescription = "We will run you through the process of creating a Voxlink. This process will link a burner wallet to your main wallet. This will allow you to safely use your burner wallet, without having to connect your main wallet.<br><br>";
