@@ -790,7 +790,7 @@ if (typeof window === 'undefined') {
                 Voxlink.guidedProcess.status.activeProcess = "delete";
                 internal.data = internal.data || {};
                 internal.data.delete = internal.data.delete || {};
-                internal.data.delete.options = internal.data.delete.options || options;
+                internal.data.delete.options = internal.data.delete.options || options || {};
                 options = internal.data.delete.options || options || {};
                 Voxlink.delete.status = Voxlink.delete.status || {};
                 if (!Voxlink.connectedWallet) {
@@ -849,7 +849,7 @@ if (typeof window === 'undefined') {
                 Voxlink.guidedProcess.status.activeProcess = "multiDelete";
                 internal.data = internal.data || {};
                 internal.data.multiDelete = internal.data.multiDelete || {};
-                internal.data.multiDelete.options = internal.data.multiDelete.options || options;
+                internal.data.multiDelete.options = internal.data.multiDelete.options || options || {};
                 options = internal.data.multiDelete.options || options || {};
                 Voxlink.multiDelete.status = Voxlink.multiDelete.status || {};
                 if (!Voxlink.connectedWallet) {
@@ -932,7 +932,7 @@ if (typeof window === 'undefined') {
                 Voxlink.guidedProcess.status.activeProcess = "register";
                 internal.data = internal.data || {};
                 internal.data.register = internal.data.register || {};
-                internal.data.register.options = internal.data.register.options || options;
+                internal.data.register.options = internal.data.register.options || options || {};
                 options = internal.data.register.options || options || {};
                 return new Promise(async (resolve, reject) => {
                     Voxlink.register.status = Voxlink.register.status || {};
