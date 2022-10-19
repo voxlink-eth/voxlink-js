@@ -788,10 +788,10 @@ if (typeof window === 'undefined') {
             status: {},
             start: async function (options) {
                 Voxlink.guidedProcess.status.activeProcess = "delete";
-                options = internal.data.delete.options || options || {};
                 internal.data = internal.data || {};
                 internal.data.delete = internal.data.delete || {};
                 internal.data.delete.options = internal.data.delete.options || options;
+                options = internal.data.delete.options || options || {};
                 Voxlink.delete.status = Voxlink.delete.status || {};
                 if (!Voxlink.connectedWallet) {
                     await Voxlink.connect();
@@ -847,10 +847,10 @@ if (typeof window === 'undefined') {
             },
             start: async function (options) {
                 Voxlink.guidedProcess.status.activeProcess = "multiDelete";
-                options = internal.data.multiDelete.options || options || {};
                 internal.data = internal.data || {};
                 internal.data.multiDelete = internal.data.multiDelete || {};
                 internal.data.multiDelete.options = internal.data.multiDelete.options || options;
+                options = internal.data.multiDelete.options || options || {};
                 Voxlink.multiDelete.status = Voxlink.multiDelete.status || {};
                 if (!Voxlink.connectedWallet) {
                     await Voxlink.connect();
@@ -912,6 +912,8 @@ if (typeof window === 'undefined') {
         register: {
             status: {},
             restart: async function () {
+                internal.data = internal.data || {};
+                internal.data.register = internal.data.register || {};
                 options = internal.data.register.options || {};
                 Voxlink.register.status.mainWallet = "";
                 Voxlink.register.status.burnerWallet = "";
@@ -928,10 +930,10 @@ if (typeof window === 'undefined') {
                     return Voxlink.multiDelete.start(options);
                 }
                 Voxlink.guidedProcess.status.activeProcess = "register";
-                options = internal.data.register.options || options || {};
                 internal.data = internal.data || {};
                 internal.data.register = internal.data.register || {};
                 internal.data.register.options = internal.data.register.options || options;
+                options = internal.data.register.options || options || {};
                 return new Promise(async (resolve, reject) => {
                     Voxlink.register.status = Voxlink.register.status || {};
                     // register Voxlink, managed process
