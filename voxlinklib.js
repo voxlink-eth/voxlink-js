@@ -84,7 +84,7 @@ if (typeof window === 'undefined') {
             var elementContent = document.createElement("div");
             //elementContent.style.position = "absolute";
             elementContent.style.fontFamily = "Chillax-Regular";
-            elementContent.style.width = "100px";
+            elementContent.style.width = "100%";
             /*elementContent.style.top = "50%";
             elementContent.style.left = "50%";
             elementContent.style.transform = "translate(-50%, -50%)";*/
