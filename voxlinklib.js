@@ -791,7 +791,7 @@ if (typeof window === 'undefined') {
                 options = options || {};
                 internal.data = internal.data || {};
                 internal.data.delete = internal.data.delete || {};
-                internal.data.delete.options = options;
+                internal.data.delete.options = internal.data.delete.options || options;
                 Voxlink.delete.status = Voxlink.delete.status || {};
                 if (!Voxlink.connectedWallet) {
                     await Voxlink.connect();
@@ -850,7 +850,7 @@ if (typeof window === 'undefined') {
                 options = options || {};
                 internal.data = internal.data || {};
                 internal.data.multiDelete = internal.data.multiDelete || {};
-                internal.data.multiDelete.options = options;
+                internal.data.multiDelete.options = internal.data.multiDelete.options || options;
                 Voxlink.multiDelete.status = Voxlink.multiDelete.status || {};
                 if (!Voxlink.connectedWallet) {
                     await Voxlink.connect();
@@ -862,7 +862,7 @@ if (typeof window === 'undefined') {
                 if (success && burnerWallets.length > 0) {
                     internal.data.multiDelete.burnerWallets = burnerWallets;
                     // multiple burner wallets detected
-                    var modalTitle = "Manage your Voxlinks";
+                    var modalTitle = "Manage your Voxlink(s)";
                     var modalDescription = "The connected wallet " + Voxlink.connectedWallet + " is linked to at least one Voxlink burner wallet.<br><br>";
                     modalDescription += "You can delete your Voxlinks and remove the connection to your main wallet.<br><br>";
                     modalDescription += "Just select the checkbox and click on the button below.<br>";
@@ -931,7 +931,7 @@ if (typeof window === 'undefined') {
                 options = options || {};
                 internal.data = internal.data || {};
                 internal.data.register = internal.data.register || {};
-                internal.data.register.options = options;
+                internal.data.register.options = internal.data.register.options || options;
                 return new Promise(async (resolve, reject) => {
                     Voxlink.register.status = Voxlink.register.status || {};
                     // register Voxlink, managed process
