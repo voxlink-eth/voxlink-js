@@ -788,7 +788,7 @@ if (typeof window === 'undefined') {
             status: {},
             start: async function (options) {
                 Voxlink.guidedProcess.status.activeProcess = "delete";
-                options = options || {};
+                options = internal.data.delete.options || options || {};
                 internal.data = internal.data || {};
                 internal.data.delete = internal.data.delete || {};
                 internal.data.delete.options = internal.data.delete.options || options;
@@ -847,7 +847,7 @@ if (typeof window === 'undefined') {
             },
             start: async function (options) {
                 Voxlink.guidedProcess.status.activeProcess = "multiDelete";
-                options = options || {};
+                options = internal.data.multiDelete.options || options || {};
                 internal.data = internal.data || {};
                 internal.data.multiDelete = internal.data.multiDelete || {};
                 internal.data.multiDelete.options = internal.data.multiDelete.options || options;
@@ -928,7 +928,7 @@ if (typeof window === 'undefined') {
                     return Voxlink.multiDelete.start(options);
                 }
                 Voxlink.guidedProcess.status.activeProcess = "register";
-                options = options || {};
+                options = internal.data.register.options || options || {};
                 internal.data = internal.data || {};
                 internal.data.register = internal.data.register || {};
                 internal.data.register.options = internal.data.register.options || options;
