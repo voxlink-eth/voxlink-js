@@ -23,6 +23,7 @@ if (typeof window === 'undefined') {
             var toast = document.createElement("div");
             // style the toast
             toast.style.position = "fixed";
+            toast.style.zIndex = "500";
             // center the toast to the middle of the screen
             switch (position) {
                 case "top-center":
@@ -238,7 +239,7 @@ if (typeof window === 'undefined') {
                         // if metamask error 4001, user rejected request
                         if (e.detail.data.code === 4001) {
                             // cancel the actual process
-                            if (Voxlink.guidedProcess.status.activeProcess && Voxlink.guidedProcess.status.activeProcess!=""){
+                            if (Voxlink.guidedProcess.status.activeProcess && Voxlink.guidedProcess.status.activeProcess != "") {
                                 Voxlink[Voxlink.guidedProcess.status.activeProcess].cancel();
                             }
                             // show a toast
@@ -303,7 +304,7 @@ if (typeof window === 'undefined') {
         VoxlinkMainDomain: "voxlink.eth",
         VoxlinkTestNode: undefined,
         VoxlinkTestDomain: "newtest.eth",
-        VoxlinkContract: "0x47c984F06326b07299bCd9f672be4791eF5e4BAa",
+        VoxlinkContract: "0xD3B0550E34113031c14e0D912352D7CEfAb6826b",
         connectedWallet: undefined,
         fontLoaded: false,
         functionsIntercepted: false,
@@ -355,15 +356,20 @@ if (typeof window === 'undefined') {
         },
         getMainWalletFromBurnerWallet: async function (burnerWallet) {
             Voxlink.VoxlinkContract = await Voxlink.getVoxlinkContract();
-            var result = await internal.ethereum.request({
-                method: 'eth_call',
-                jsonrpc: "2.0",
-                id: "1",
-                params: [{
-                    to: Voxlink.VoxlinkContract,
-                    data: "0xe702a670" + Voxlink.padded(burnerWallet.slice(2))
-                }, "latest"]
-            });
+            try {
+                var result = await internal.ethereum.request({
+                    method: 'eth_call',
+                    jsonrpc: "2.0",
+                    id: "1",
+                    params: [{
+                        to: Voxlink.VoxlinkContract,
+                        data: "0xe702a670" + Voxlink.padded(burnerWallet.slice(2))
+                    }, "latest"]
+                });
+            } catch (e) {
+                window.dispatchEvent(new CustomEvent("VoxlinkError", { detail: e }));
+                return { success: false, mainWallet: "", error: e };
+            }
             result = result.slice(2);
             // success is a boolean of the first 64 bytes
             var success = Boolean(parseInt(result.substring(0, 64)));
@@ -372,15 +378,20 @@ if (typeof window === 'undefined') {
         },
         getBurnerWalletsFromMainWallet: async function (mainWallet) {
             Voxlink.VoxlinkContract = await Voxlink.getVoxlinkContract();
-            var result = await internal.ethereum.request({
-                method: 'eth_call',
-                jsonrpc: "2.0",
-                id: "1",
-                params: [{
-                    to: Voxlink.VoxlinkContract,
-                    data: "0xc4f88ec4" + Voxlink.padded(mainWallet.slice(2))
-                }, "latest"]
-            });
+            try {
+                var result = await internal.ethereum.request({
+                    method: 'eth_call',
+                    jsonrpc: "2.0",
+                    id: "1",
+                    params: [{
+                        to: Voxlink.VoxlinkContract,
+                        data: "0xc4f88ec4" + Voxlink.padded(mainWallet.slice(2))
+                    }, "latest"]
+                });
+            } catch (e) {
+                window.dispatchEvent(new CustomEvent("VoxlinkError", { detail: e }));
+                return { success: false, burnerWallets: [], error: e };
+            }
             result = result.slice(2);
             // success is a boolean of the first 64 bytes
             var success = Boolean(parseInt(result.substring(0, 64)));
@@ -461,7 +472,7 @@ if (typeof window === 'undefined') {
                 } catch (e) {
                     console.log(e);
                     var event = {};
-                    
+
                     event.event = "error";
                     event.data = e;
                     window.dispatchEvent(new CustomEvent('VoxlinkEvent', { detail: event }));
