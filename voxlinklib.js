@@ -291,7 +291,7 @@ if (typeof window === 'undefined') {
                 var { success, burnerWallets } = await Voxlink.getBurnerWalletsFromMainWallet(Voxlink.connectedWallet);
                 if (burnerWallets.length > 0) {
                     // show a quick toast to let the user know they have burner wallets
-                    internal.createToast('<span style="font-size:1.5em">Main Wallet detected</span><hr><br><span style="font-size:1.1em">You have connected a wallet that is using Voxlink.<br>Please consider connecting one of your burner wallets.<br><br>' + burnerWallets.join('<br>') + '</span>', 'top-right', 5500);
+                    internal.createToast('<span style="font-size:1.5em">Main Wallet detected</span><hr><br><span style="font-size:1.1em">You have connected a wallet that is using Voxlink.<br>Please consider connecting one of your burner wallets.<br><br>' + burnerWallets.join('<br>') + '</span>', 'top-left', 5500);
                 }
             }
         },
