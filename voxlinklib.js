@@ -263,11 +263,11 @@ if (typeof window === 'undefined') {
                     await Voxlink.disconnect();
                     break;
                 case "connect":
-                    if (!Voxlink.connectedWallet) {
+                    /*if (!Voxlink.connectedWallet && internal.ethereum.isConnected()) {
                         await Voxlink.connect();
                     }
                     console.log("connect", data);
-                    Voxlink.ethereumConnected = true;
+                    Voxlink.ethereumConnected = true;*/
                     Voxlink.guidedProcess.reload();
                     break;
                 case "disconnect":
@@ -533,9 +533,19 @@ if (typeof window === 'undefined') {
                 throw ("No ethereum wallet detected");
                 return;
             }
-            var helper = Voxlink.toChecksumAddress((await internal.ethereum.request({ method: "eth_requestAccounts" }))[0]);
+            try{
+                var helper = Voxlink.toChecksumAddress((await internal.ethereum.request({ method: "eth_requestAccounts" }))[0]);
+            } catch (e) {
+                var event = {};
+                event.event = "error";
+                event.data = e;
+                window.dispatchEvent(new CustomEvent('VoxlinkEvent', { detail: event }));
+                throw("Connection request rejected");
+                return;
+            }
             Voxlink._connectedWallet = helper;
             Voxlink.connectedWallet = helper;
+            Voxlink.ethereumConnected = true;
             // save the network
             Voxlink.chainId = await internal.ethereum.request({ method: "eth_chainId" });
             if (Voxlink.chainId != "0x5") {
@@ -876,7 +886,11 @@ if (typeof window === 'undefined') {
                 options = internal.data.delete.options || options || {};
                 Voxlink.delete.status = Voxlink.delete.status || {};
                 if (!Voxlink.connectedWallet) {
-                    await Voxlink.connect();
+                    try{
+                        await Voxlink.connect();
+                    } catch (e) {
+                        return;
+                    }
                 }
                 var { success, mainWallet } = await Voxlink.getMainWalletFromBurnerWallet(Voxlink.connectedWallet);
                 if (!success) {
@@ -941,7 +955,11 @@ if (typeof window === 'undefined') {
                 options = internal.data.multiDelete.options || options || {};
                 Voxlink.multiDelete.status = Voxlink.multiDelete.status || {};
                 if (!Voxlink.connectedWallet) {
-                    await Voxlink.connect();
+                    try{
+                        await Voxlink.connect();
+                    } catch (e) {
+                        return;
+                    }
                 }
                 var { success, burnerWallets } = await Voxlink.getBurnerWalletsFromMainWallet(Voxlink.connectedWallet);
                 if (!success) {
@@ -1041,6 +1059,13 @@ if (typeof window === 'undefined') {
                         }
                         await Voxlink.connect();
                     } catch (e) {
+                        // remove modal
+                        internal.removeElement("connectionRequestVoxlink");
+                        // send connection error event
+                        var event = {};
+                        event.event = "error";
+                        event.data = e;
+                        window.dispatchEvent(new CustomEvent('VoxlinkEvent', { detail: event }));
                         return;
                     }
                 }
