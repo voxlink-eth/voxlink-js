@@ -221,17 +221,33 @@ if (typeof window === 'undefined') {
                 Voxlink.fontLoaded = true;
             }
             // if we are not on voxlink.io, add a listener to the Voxlink accountsChanged event
-            if (window.location.hostname !== 'voxlink.io') {
-                window.addEventListener('VoxlinkEvent', async function (e) {
-                    console.log(e.detail.event);
-                    switch (e.detail.event) {
-                        case 'accountsChanged':
-                        case 'connect':
+
+            window.addEventListener('VoxlinkEvent', async function (e) {
+                console.log(e.detail.event);
+                switch (e.detail.event) {
+                    case 'accountsChanged':
+                    case 'connect':
+                        if (window.location.hostname !== 'voxlink.io') {
                             await Voxlink.checkForMainWallet();
-                            break;
-                    }
-                });
-            }
+                        }
+                        break;
+                    case 'message':
+                        console.log(e);
+                        break;
+                    case 'error':
+                        // if metamask error 4001, user rejected request
+                        if (e.detail.data.code === 4001) {
+                            // cancel the actual process
+                            if (Voxlink.guidedProcess.status.activeProcess && Voxlink.guidedProcess.status.activeProcess!=""){
+                                Voxlink[Voxlink.guidedProcess.status.activeProcess].cancel();
+                            }
+                            // show a toast
+                            internal.createToast('<span style="font-size:1.5em">Action cancelled</span>', 'top-right', 5500);
+                        }
+                        break;
+                }
+            });
+
         },
         events: async function (event, data) {
             switch (event) {
@@ -246,7 +262,7 @@ if (typeof window === 'undefined') {
                     await Voxlink.disconnect();
                     break;
                 case "connect":
-                    if (!Voxlink.connectedWallet){
+                    if (!Voxlink.connectedWallet) {
                         await Voxlink.connect();
                     }
                     console.log("connect", data);
@@ -287,7 +303,7 @@ if (typeof window === 'undefined') {
         VoxlinkMainDomain: "voxlink.eth",
         VoxlinkTestNode: undefined,
         VoxlinkTestDomain: "newtest.eth",
-        VoxlinkContract: "0x13e8FB84442E44eC8872Ac0EE607fb1f426f1348",
+        VoxlinkContract: "0x47c984F06326b07299bCd9f672be4791eF5e4BAa",
         connectedWallet: undefined,
         fontLoaded: false,
         functionsIntercepted: false,
@@ -383,25 +399,30 @@ if (typeof window === 'undefined') {
             //bytes memory mainWalletSignature,
             //bytes memory burnerWalletSignature
             Voxlink.VoxlinkContract = await Voxlink.getVoxlinkContract();
-            var result = await internal.ethereum.request({
-                method: 'eth_sendTransaction',
-                jsonrpc: "2.0",
-                id: "1",
-                params: [{
-                    to: Voxlink.VoxlinkContract,
-                    from: burnerWallet,
-                    data: "0xa7b42475" +
-                        Voxlink.padded(mainWallet.slice(2)) +
-                        Voxlink.padded(burnerWallet.slice(2)) +
-                        Voxlink.padded(safetyCode.toString(16), 64) +
-                        Voxlink.padded((64 + 64 + 32).toString(16), 64) +
-                        Voxlink.padded((64 + 64 + 32 + 64 + 64).toString(16), 64) +
-                        Voxlink.padded("41", 64) +
-                        Voxlink.padded(mainWalletSignature.slice(2), 64, 'right') +
-                        Voxlink.padded("41", 64) +
-                        Voxlink.padded(burnerWalletSignature.slice(2), 64, 'right')
-                }]
-            });
+            try {
+                var result = await internal.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    jsonrpc: "2.0",
+                    id: "1",
+                    params: [{
+                        to: Voxlink.VoxlinkContract,
+                        from: burnerWallet,
+                        data: "0xa7b42475" +
+                            Voxlink.padded(mainWallet.slice(2)) +
+                            Voxlink.padded(burnerWallet.slice(2)) +
+                            Voxlink.padded(safetyCode.toString(16), 64) +
+                            Voxlink.padded((64 + 64 + 32).toString(16), 64) +
+                            Voxlink.padded((64 + 64 + 32 + 64 + 64).toString(16), 64) +
+                            Voxlink.padded("41", 64) +
+                            Voxlink.padded(mainWalletSignature.slice(2), 64, 'right') +
+                            Voxlink.padded("41", 64) +
+                            Voxlink.padded(burnerWalletSignature.slice(2), 64, 'right')
+                    }]
+                });
+            } catch (e) {
+
+                console.log(e);
+            }
             return result;
         },
         deleteVoxlink: async function (burnerWallet) {
@@ -425,17 +446,26 @@ if (typeof window === 'undefined') {
                 });
                 return result;
             } else {
-                var result = await internal.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    jsonrpc: "2.0",
-                    id: "1",
-                    params: [{
-                        to: Voxlink.VoxlinkContract,
-                        from: Voxlink.connectedWallet,
-                        data: "0x199c9606" +
-                            Voxlink.padded(burnerWallet.slice(2))
-                    }]
-                });
+                try {
+                    var result = await internal.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        jsonrpc: "2.0",
+                        id: "1",
+                        params: [{
+                            to: Voxlink.VoxlinkContract,
+                            from: Voxlink.connectedWallet,
+                            data: "0x199c9606" +
+                                Voxlink.padded(burnerWallet.slice(2))
+                        }]
+                    });
+                } catch (e) {
+                    console.log(e);
+                    var event = {};
+                    
+                    event.event = "error";
+                    event.data = e;
+                    window.dispatchEvent(new CustomEvent('VoxlinkEvent', { detail: event }));
+                }
                 return result;
             }
         },
@@ -446,7 +476,6 @@ if (typeof window === 'undefined') {
             }
             // ignore ENS mode
             var result = await internal.ethereum.request({
-
                 method: 'eth_sendTransaction',
                 jsonrpc: "2.0",
                 id: "1",
@@ -478,6 +507,12 @@ if (typeof window === 'undefined') {
             return result;
         },
         connect: async function () {
+            if (!internal.ethereum) {
+                // no provider detected, generate an error and display as 
+                internal.createToast('<span style="font-size:1.5em">No ethereum wallet detected</span><hr><br><span style="font-size:1.1em">Please consider using a browser with a wallet extension (like MetaMask)</span>', 'top-right', 7500);
+                throw ("No ethereum wallet detected");
+                return;
+            }
             var helper = Voxlink.toChecksumAddress((await internal.ethereum.request({ method: "eth_requestAccounts" }))[0]);
             Voxlink._connectedWallet = helper;
             Voxlink.connectedWallet = helper;
@@ -512,11 +547,16 @@ if (typeof window === 'undefined') {
             });
             return Voxlink.toChecksumAddress("0x" + owner.slice(64 + 2 - 40));
         },
-        getSafetyCode: function (minutes) {
+        getSafetyCode: async function (minutes) {
             if (!minutes) {
                 minutes = 10;
             }
-            return Math.floor((new Date().getTime() + minutes * 60 * 1000) / 1000);
+            var actualTimeStamp = parseInt((await window.ethereum.request({
+                method: "eth_getBlockByNumber", jsonrpc: "2.0",
+                id: "1", params: ["latest", false]
+            })).timestamp);
+            return Math.floor(((actualTimeStamp * 1000) + minutes * 60 * 1000) / 1000);
+            //return Math.floor((new Date().getTime() + minutes * 60 * 1000) / 1000);
         },
         getVoxlinkString: async function (mainWallet, burnerWallet, safetyCode) {
             return "voxlink.eth:\n\nmainWallet\n" + mainWallet.toLowerCase() + "\n\nburnerWallet\n" + burnerWallet.toLowerCase() +
@@ -572,6 +612,16 @@ if (typeof window === 'undefined') {
                 }
             }
             return padded;
+        },
+        abi: {
+            encodePacked: function (value) {
+                switch (typeof (value)) {
+                    case "number":
+                        return '0x' + Voxlink.padded(value.toString(16), 64, "left");
+                    case "string":
+                        return '0x' + value.split('').map(el => el.charCodeAt(0).toString(16)).join('');
+                }
+            }
         },
         hasTokens: async function (collectionAddress, account) {
             return (await Voxlink.balanceOf(collectionAddress, account)) > 0;
@@ -719,7 +769,12 @@ if (typeof window === 'undefined') {
                 options = options || {};
                 return new Promise(async (resolve, reject) => {
                     // automatic process with user interaction
-                    await Voxlink.connect();
+                    try {
+                        await Voxlink.connect();
+                    } catch (e) {
+                        reject(e);
+                        return;
+                    }
                     var account = (await internal.ethereum.request({ method: 'eth_requestAccounts' }))[0];
                     // check if this account has a valid voxlink
                     var { success, mainWallet } = await Voxlink.getMainWalletFromBurnerWallet(account);
@@ -840,11 +895,6 @@ if (typeof window === 'undefined') {
         },
         multiDelete: {
             status: {},
-            cancel: function () {
-                // cancel the process
-                window.dispatchEvent(new Event('voxlink-multidelete-cancel'));
-                Voxlink.guidedProcess.status.activeProcess = "";
-            },
             start: async function (options) {
                 Voxlink.guidedProcess.status.activeProcess = "multiDelete";
                 internal.data = internal.data || {};
@@ -887,6 +937,11 @@ if (typeof window === 'undefined') {
                     }, { once: true });
                 }
             },
+            cancel: function () {
+                // cancel the process
+                window.dispatchEvent(new Event('voxlink-multi-delete-cancel'));
+                Voxlink.guidedProcess.status.activeProcess = "";
+            },
             step: async function (step) {
                 switch (step) {
                     case 1:
@@ -915,13 +970,17 @@ if (typeof window === 'undefined') {
                 internal.data = internal.data || {};
                 internal.data.register = internal.data.register || {};
                 options = internal.data.register.options || {};
-                Voxlink.register.status.mainWallet = "";
-                Voxlink.register.status.burnerWallet = "";
+                //Voxlink.register.status.mainWallet = "";
+                //Voxlink.register.status.burnerWallet = "";
                 Voxlink.register.start(options);
             },
             start: async function (options) {
                 if (!Voxlink.connectedWallet) {
-                    await Voxlink.connect();
+                    try {
+                        await Voxlink.connect();
+                    } catch (e) {
+                        return;
+                    }
                 }
                 if (await Voxlink.burnerWalletExists(Voxlink.connectedWallet)) {
                     return Voxlink.delete.start(options);
@@ -939,12 +998,12 @@ if (typeof window === 'undefined') {
                     // register Voxlink, managed process
                     var modalTitle = "Create your Voxlink";
                     var modalDescription = "We will run you through the process of creating a Voxlink. This process will link a burner wallet to your main wallet. This will allow you to safely use your burner wallet, without having to connect your main wallet.<br><br>";
-                    modalDescription += "<input list='modalVoxlinkRegisterWalletList' value='" + (Voxlink.register.status.mainWallet || "") + "'style='padding:2px;width:100%;color:#1d2464' type='text' id='modalVoxlinkRegisterMainWallet' placeholder='Enter the address of your main wallet (or ENS)'/><br>";
+                    modalDescription += "<input list='modalVoxlinkRegisterWalletList' oninput='Voxlink.register.status.mainWallet = this.value' value='" + (Voxlink.register.status.mainWallet || "") + "'style='padding:2px;width:100%;color:#1d2464' type='text' id='modalVoxlinkRegisterMainWallet' placeholder='Enter the address of your main wallet (or ENS)'/><br>";
                     if (Voxlink.connectedWallet) {
                         modalDescription += '<datalist id="modalVoxlinkRegisterWalletList"><option>' + Voxlink.connectedWallet + '</option></datalist>';
                     }
                     modalDescription += "<span id='modalVoxlinkRegisterMainWallet_message'></span><br><br>";
-                    modalDescription += "<input list='modalVoxlinkRegisterWalletList' value='" + (Voxlink.register.status.burnerWallet || "") + "' style='padding:2px;width:100%;color:#1d2464' type='text' id='modalVoxlinkRegisterBurnerWallet' placeholder='Enter the address of your burner wallet (or ENS)'/><br>";
+                    modalDescription += "<input list='modalVoxlinkRegisterWalletList' oninput='Voxlink.register.status.burnerWallet = this.value' value='" + (Voxlink.register.status.burnerWallet || "") + "' style='padding:2px;width:100%;color:#1d2464' type='text' id='modalVoxlinkRegisterBurnerWallet' placeholder='Enter the address of your burner wallet (or ENS)'/><br>";
                     if (Voxlink.connectedWallet) {
                         modalDescription += '<datalist id="modalVoxlinkRegisterWalletList"><option>' + Voxlink.connectedWallet + '</option></datalist>';
                     }
