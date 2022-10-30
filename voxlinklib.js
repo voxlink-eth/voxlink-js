@@ -224,7 +224,6 @@ if (typeof window === 'undefined') {
             // if we are not on voxlink.io, add a listener to the Voxlink accountsChanged event
 
             window.addEventListener('VoxlinkEvent', async function (e) {
-                console.log(e.detail.event);
                 switch (e.detail.event) {
                     case 'accountsChanged':
                     case 'connect':
@@ -237,6 +236,7 @@ if (typeof window === 'undefined') {
                         break;
                     case 'error':
                         // if metamask error 4001, user rejected request
+
                         if (e.detail.data.code === 4001) {
                             // cancel the actual process
                             if (Voxlink.guidedProcess.status.activeProcess && Voxlink.guidedProcess.status.activeProcess != "") {
@@ -332,7 +332,16 @@ if (typeof window === 'undefined') {
                 });
                 return "0x" + owner.slice(64 + 2 - 40);
             } else {
-                return Voxlink.VoxlinkContract;
+                switch (internal.ethereum?.chainId) {
+                    case "0x1":
+                        return "";
+                        break;
+                    case "0x5":
+                        return "0xD3B0550E34113031c14e0D912352D7CEfAb6826b";
+                        break;
+                    default:
+                        return Voxlink.VoxlinkContract;
+                }
             }
         },
         setMode: async function (mode) {
@@ -473,7 +482,6 @@ if (typeof window === 'undefined') {
                 } catch (e) {
                     console.log(e);
                     var event = {};
-
                     event.event = "error";
                     event.data = e;
                     window.dispatchEvent(new CustomEvent('VoxlinkEvent', { detail: event }));
@@ -528,6 +536,13 @@ if (typeof window === 'undefined') {
             var helper = Voxlink.toChecksumAddress((await internal.ethereum.request({ method: "eth_requestAccounts" }))[0]);
             Voxlink._connectedWallet = helper;
             Voxlink.connectedWallet = helper;
+            // save the network
+            Voxlink.chainId = await internal.ethereum.request({ method: "eth_chainId" });
+            if (Voxlink.chainId != "0x5") {
+                internal.createToast('<span style="font-size:1.5em">As of now, Voxlink is available on the Goerli Testnet</span><hr><br><span style="font-size:1.1em">We are working on launching to main-net. Until then you can test out the features by switching the network in MetaMask to Goerli.</span>', 'top-left', 9000);
+                Voxlink.disconnect();
+                throw ("Wrong network");
+            }
         },
         disconnect: async function () {
             Voxlink.connectedWallet = undefined;
@@ -763,19 +778,19 @@ if (typeof window === 'undefined') {
         ghostminting: {
             cancel: function () {
                 // cancel minting by sending an event
-                window.dispatchEvent(new Event('voxlink-ghostminting-cancel'));
+                window.dispatchEvent(new CustomEvent('voxlink-ghostminting-cancel'));
             },
             switchToBurner: function () {
                 // cancel minting by sending an event
-                window.dispatchEvent(new Event('voxlink-ghostminting-switchtoburner'));
+                window.dispatchEvent(new CustomEvent('voxlink-ghostminting-switchtoburner'));
             },
             pauseCountdown: function () {
                 // cancel minting by sending an event
-                window.dispatchEvent(new Event('voxlink-ghostminting-pausecountdown'));
+                window.dispatchEvent(new CustomEvent('voxlink-ghostminting-pausecountdown'));
             },
             mint: function () {
                 // cancel minting by sending an event
-                window.dispatchEvent(new Event('voxlink-ghostminting-mint'));
+                window.dispatchEvent(new CustomEvent('voxlink-ghostminting-mint'));
             },
             start: async function (options) {
                 options = options || {};
@@ -891,14 +906,25 @@ if (typeof window === 'undefined') {
             },
             cancel: function () {
                 // cancel the process
-                window.dispatchEvent(new Event('voxlink-delete-cancel'));
+                window.dispatchEvent(new CustomEvent('voxlink-delete-cancel'));
                 Voxlink.guidedProcess.status.activeProcess = "";
             },
             step: async function (step) {
                 switch (step) {
                     case 1:
                         // delete
-                        await Voxlink.deleteVoxlink(Voxlink.connectedWallet);
+                        try {
+                            var r = await Voxlink.deleteVoxlink(Voxlink.connectedWallet);
+                            if (r) {
+                                Voxlink.delete.cancel();
+                                internal.createToast('<span style="font-size:1.5em">Voxlink deleted! Please wait for the transaction confirmation.</span>', 'top-left', 5500);
+                            }
+                        } catch (e) {
+                            var event = {};
+                            event.event = "error";
+                            event.data = e;
+                            window.dispatchEvent(new CustomEvent('VoxlinkEvent', { detail: event }));
+                        }
                         break;
                     default:
                         return;
@@ -951,7 +977,7 @@ if (typeof window === 'undefined') {
             },
             cancel: function () {
                 // cancel the process
-                window.dispatchEvent(new Event('voxlink-multi-delete-cancel'));
+                window.dispatchEvent(new CustomEvent('voxlink-multi-delete-cancel'));
                 Voxlink.guidedProcess.status.activeProcess = "";
             },
             step: async function (step) {
@@ -966,7 +992,18 @@ if (typeof window === 'undefined') {
                             }
                         });
                         if (toDelete.length > 0) {
-                            await Voxlink.deleteVoxlinks(toDelete);
+                            try {
+                                var r = await Voxlink.deleteVoxlinks(toDelete);
+                                if (r) {
+                                    Voxlink.multiDelete.cancel();
+                                    internal.createToast('<span style="font-size:1.5em">Voxlinks deleted! Please wait for the transaction confirmation.</span>', 'top-left', 5500);
+                                }
+                            } catch (e) {
+                                var event = {};
+                                event.event = "error";
+                                event.data = e;
+                                window.dispatchEvent(new CustomEvent('VoxlinkEvent', { detail: event }));
+                            }
                         }
                         return;
                         break;
@@ -994,6 +1031,14 @@ if (typeof window === 'undefined') {
                 options = internal.data.register.options || options || {};
                 if (!Voxlink.connectedWallet) {
                     try {
+                        var modalTitle = "Connecting your wallet...";
+                        var modalDescription = "Please confirm the connection request in your wallet to continue.";
+                        if (internal.data.register.options.elementId) {
+                            // an elementId was provided, so we won't show the modal but instead inflate the code into the id
+                            newElement = internal.createElement(internal.data.register.options.elementId, "connectionRequestVoxlink", modalTitle, modalDescription);
+                        } else {
+                            newElement = internal.createModal('connectionRequestVoxlink', modalTitle, modalDescription);
+                        }
                         await Voxlink.connect();
                     } catch (e) {
                         return;
@@ -1005,7 +1050,7 @@ if (typeof window === 'undefined') {
                 if ((await Voxlink.getBurnerWalletsFromMainWallet(Voxlink.connectedWallet)).burnerWallets.length > 0) {
                     return Voxlink.multiDelete.start(options);
                 }
-                
+
                 return new Promise(async (resolve, reject) => {
                     Voxlink.register.status = Voxlink.register.status || {};
                     // register Voxlink, managed process
@@ -1047,14 +1092,13 @@ if (typeof window === 'undefined') {
                 });
             },
             cancel: function () {
-                window.dispatchEvent(new Event("voxlink-register-cancel"));
+                window.dispatchEvent(new CustomEvent("voxlink-register-cancel"));
                 Voxlink.guidedProcess.status.activeProcess = "";
             },
             step: async function (step) {
                 switch (step) {
                     case 1:
                         // restart the process
-                        console.log(internal.data.register.options);
                         Voxlink.register.start(internal.data.register.options);
                         break;
                     case 2:
@@ -1201,7 +1245,15 @@ if (typeof window === 'undefined') {
                         }
                         // restore height of element to storage
                         document.querySelector('#' + (Voxlink.activeElement || Voxlink.activeModal)).style.height = internal.data.register.height + "px";
-                        await Voxlink.registerVoxlink(Voxlink.register.status.mainWallet, Voxlink.register.status.burnerWallet, Voxlink.register.status.safetyCode, Voxlink.register.status.signatures['main'], Voxlink.register.status.signatures['burner']);
+                        try {
+                            var r = await Voxlink.registerVoxlink(Voxlink.register.status.mainWallet, Voxlink.register.status.burnerWallet, Voxlink.register.status.safetyCode, Voxlink.register.status.signatures['main'], Voxlink.register.status.signatures['burner']);
+                            if (r) {
+                                Voxlink.register.cancel();
+                                internal.createToast('<span style="font-size:1.5em">Voxlink created! Please wait for the transaction confirmation.</span>', 'top-left', 5500);
+                            }
+                        } catch (e) {
+                            document.querySelector('#modalVoxlinkRegister_message').innerHTML = 'An error has occurred (' + e.message + ')';
+                        }
                         break;
                 }
             }
