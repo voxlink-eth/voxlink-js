@@ -273,6 +273,7 @@ if (typeof window === 'undefined') {
                 case "disconnect":
                     console.log("disconnect", data);
                     Voxlink.ethereumConnected = false;
+                    await Voxlink.disconnect();
                     break;
                 case "error":
                     console.log("error", data);
@@ -986,6 +987,11 @@ if (typeof window === 'undefined') {
                 Voxlink.register.start(options);
             },
             start: async function (options) {
+                Voxlink.guidedProcess.status.activeProcess = "register";
+                internal.data = internal.data || {};
+                internal.data.register = internal.data.register || {};
+                internal.data.register.options = internal.data.register.options || options || {};
+                options = internal.data.register.options || options || {};
                 if (!Voxlink.connectedWallet) {
                     try {
                         await Voxlink.connect();
@@ -999,11 +1005,7 @@ if (typeof window === 'undefined') {
                 if ((await Voxlink.getBurnerWalletsFromMainWallet(Voxlink.connectedWallet)).burnerWallets.length > 0) {
                     return Voxlink.multiDelete.start(options);
                 }
-                Voxlink.guidedProcess.status.activeProcess = "register";
-                internal.data = internal.data || {};
-                internal.data.register = internal.data.register || {};
-                internal.data.register.options = internal.data.register.options || options || {};
-                options = internal.data.register.options || options || {};
+                
                 return new Promise(async (resolve, reject) => {
                     Voxlink.register.status = Voxlink.register.status || {};
                     // register Voxlink, managed process
