@@ -1059,8 +1059,6 @@ if (typeof window === 'undefined') {
                         }
                         await Voxlink.connect();
                     } catch (e) {
-                        // remove modal
-                        internal.removeElement("connectionRequestVoxlink");
                         // send connection error event
                         var event = {};
                         event.event = "error";
