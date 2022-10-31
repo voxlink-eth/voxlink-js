@@ -188,10 +188,20 @@ if (typeof window === 'undefined') {
         activeModal: null,
         setWeb3Provider: function (provider) {
             if (!provider.request) {
-                provider = provider.currentProvider;
-                provider.request = provider.send;
+                //provider = provider.currentProvider;
+                provider.request = (c) => {
+                    return new Promise((resolve, reject) => {
+                        provider.send(c, function (err, res) {
+                            if (err) {
+                                return reject(err);
+                            }
+                            return resolve(res.result);
+                        });
+                    });
+                };
             }
             internal.ethereum = provider;
+            window.Voxlink.web3request= internal.ethereum.request;
         },
         init: async function () {
             if (typeof (configVoxlink) !== "undefined" && configVoxlink.web3Provider) {
@@ -533,14 +543,14 @@ if (typeof window === 'undefined') {
                 throw ("No ethereum wallet detected");
                 return;
             }
-            try{
+            try {
                 var helper = Voxlink.toChecksumAddress((await internal.ethereum.request({ method: "eth_requestAccounts" }))[0]);
             } catch (e) {
                 var event = {};
                 event.event = "error";
                 event.data = e;
                 window.dispatchEvent(new CustomEvent('VoxlinkEvent', { detail: event }));
-                throw("Connection request rejected");
+                throw ("Connection request rejected");
                 return;
             }
             Voxlink._connectedWallet = helper;
@@ -586,9 +596,9 @@ if (typeof window === 'undefined') {
         },
         getSafetyCode: async function (minutes) {
             if (!minutes) {
-                minutes = 10;
+                minutes = 5;
             }
-            var actualTimeStamp = parseInt((await window.ethereum.request({
+            var actualTimeStamp = parseInt((await internal.ethereum.request({
                 method: "eth_getBlockByNumber", jsonrpc: "2.0",
                 id: "1", params: ["latest", false]
             })).timestamp);
@@ -886,7 +896,7 @@ if (typeof window === 'undefined') {
                 options = internal.data.delete.options || options || {};
                 Voxlink.delete.status = Voxlink.delete.status || {};
                 if (!Voxlink.connectedWallet) {
-                    try{
+                    try {
                         await Voxlink.connect();
                     } catch (e) {
                         return;
@@ -955,7 +965,7 @@ if (typeof window === 'undefined') {
                 options = internal.data.multiDelete.options || options || {};
                 Voxlink.multiDelete.status = Voxlink.multiDelete.status || {};
                 if (!Voxlink.connectedWallet) {
-                    try{
+                    try {
                         await Voxlink.connect();
                     } catch (e) {
                         return;
@@ -1948,6 +1958,7 @@ if (typeof window === 'undefined') {
             console.log(event.name, event.detail);
         };
         global.Voxlink = window.Voxlink;
+    } else {
+        await Voxlink.init();
     }
-    await Voxlink.init();
 })();
