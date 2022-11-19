@@ -347,7 +347,7 @@ if (typeof window === 'undefined') {
                         return "";
                         break;
                     case "0x5":
-                        return "0x2ea85ea23903E7c9192c85adf59B9f877F4d29f8";
+                        return "0x4A7b776E313240c292Bc5C03526f970E981d907A";
                         break;
                     default:
                         return Voxlink.VoxlinkContract;
