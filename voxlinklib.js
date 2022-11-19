@@ -201,7 +201,7 @@ if (typeof window === 'undefined') {
                 };
             }
             internal.ethereum = provider;
-            window.Voxlink.web3request= internal.ethereum.request;
+            window.Voxlink.web3request = internal.ethereum.request;
         },
         init: async function () {
             if (typeof (configVoxlink) !== "undefined" && configVoxlink.web3Provider) {
@@ -315,7 +315,7 @@ if (typeof window === 'undefined') {
         VoxlinkMainDomain: "voxlink.eth",
         VoxlinkTestNode: undefined,
         VoxlinkTestDomain: "newtest.eth",
-        VoxlinkContract: "0xD3B0550E34113031c14e0D912352D7CEfAb6826b",
+        VoxlinkContract: "0x2ea85ea23903E7c9192c85adf59B9f877F4d29f8",
         connectedWallet: undefined,
         fontLoaded: false,
         functionsIntercepted: false,
@@ -617,6 +617,9 @@ if (typeof window === 'undefined') {
             return signature;
         },
         getNameHash: function (fullDomain) {
+            if (fullDomain == '') {
+                return '0x0000000000000000000000000000000000000000000000000000000000000000';
+            }
             var fullDomainSplit = fullDomain.split('.');
             function _getNameHash(args) {
                 if (typeof args !== 'object') {
@@ -624,11 +627,13 @@ if (typeof window === 'undefined') {
                 }
                 var namehash = "0000000000000000000000000000000000000000000000000000000000000000";
                 for (var i = args.length - 1; i >= 0; i--) {
-                    var combined = new Uint8Array([
-                        ...Voxlink.hexToUint8Array(namehash),
-                        ...Voxlink.hexToUint8Array(Voxlink.keccak256(args[i]))
-                    ]);
-                    namehash = Voxlink.keccak256(combined);
+                    var combined = namehash + Voxlink.keccak256(args[i]);
+                    var bytes = [];
+                    for (var n = 0; n < combined.length; n += 2) {
+                        var code = parseInt(combined.substring(n, n+2), 16);
+                        bytes.push(code);
+                    }
+                    namehash = Voxlink.keccak256(bytes);
                 }
                 return "0x" + namehash;
             }
