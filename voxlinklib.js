@@ -1086,9 +1086,6 @@ if (typeof window === 'undefined') {
                 if (await Voxlink.burnerWalletExists(Voxlink.connectedWallet)) {
                     return Voxlink.delete.start(options);
                 }
-                if ((await Voxlink.getBurnerWalletsFromMainWallet(Voxlink.connectedWallet)).burnerWallets.length > 0) {
-                    return Voxlink.multiDelete.start(options);
-                }
 
                 return new Promise(async (resolve, reject) => {
                     Voxlink.register.status = Voxlink.register.status || {};
@@ -1112,6 +1109,10 @@ if (typeof window === 'undefined') {
                     if (!internal.data.register.options.elementId) {
                         // only add cancel if we are in a popup
                         modalDescription += '<button onclick="Voxlink.register.cancel()" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;margin-right:10px;">Cancel</button>';
+                    }
+
+                    if ((await Voxlink.getBurnerWalletsFromMainWallet(Voxlink.connectedWallet)).burnerWallets.length > 0) {
+                        modalDescription += '<button onclick="Voxlink.multiDelete.start(JSON.parse(`'+JSON.stringify(options)+'`))" style="font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;margin-right:10px;">Manage existing burners</button>';
                     }
                     modalDescription += '<button onclick="Voxlink.register.step(2)" style="right:0px;font-size:1.25rem;padding-right:1rem;padding-left:1rem;font-weight:bold;border-radius:9999px;background:#3235ef;color:#FFFFFF;">Next</button>';
                     modalDescription += '<br><br><div style="text-align:center"><span style="font-size:2rem;color:#FFFFFF">&#9679;</span><span style="font-size:2rem;color:#FFFFFF">&#9675;</span><span style="font-size:2rem;color:#FFFFFF">&#9675;</span></div>';
